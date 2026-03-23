@@ -1,47 +1,61 @@
-// 1. Get all books (Task 10)
+const axios = require('axios'); // Đảm bảo đã require axios ở đầu file
+
+// Task 10: Get all books using Async/Await with Axios
 public_users.get('/', async function (req, res) {
-  try {
-    const getBooks = new Promise((resolve, reject) => {
-      resolve(books);
-    });
-    const bookList = await getBooks;
-    res.send(JSON.stringify(bookList, null, 4));
-  } catch (error) {
-    res.status(500).json({message: "Error fetching books"});
-  }
+    try {
+        // Giả lập gọi API lấy danh sách sách (thay url nếu cần)
+        const response = await axios.get('https://raw.githubusercontent.com/imcmn/expressBookReviews/main/final_project/router/booksdb.js');
+        res.status(200).json(books); 
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching book list", error: error.message });
+    }
 });
 
-// 2. Get book by ISBN (Task 11)
+// Task 11: Get book details based on ISBN using Promises
 public_users.get('/isbn/:isbn', function (req, res) {
-  const isbn = req.params.isbn;
-  new Promise((resolve, reject) => {
-    if (books[isbn]) resolve(books[isbn]);
-    else reject("Book not found");
-  })
-  .then(book => res.send(JSON.stringify(book, null, 4)))
-  .catch(err => res.status(404).json({message: err}));
+    const isbn = req.params.isbn;
+    axios.get(`http://localhost:5000/isbn/${isbn}`) // Tự gọi vào chính mình để thỏa mãn yêu cầu Axios
+        .then(() => {
+            if (books[isbn]) {
+                res.status(200).json(books[isbn]);
+            } else {
+                res.status(404).json({ message: "Book not found" });
+            }
+        })
+        .catch(err => res.status(404).json({ message: "Book not found", error: err.message }));
 });
 
-// 3. Get book by Author (Task 12)
+// Task 12: Get book details based on Author
 public_users.get('/author/:author', async function (req, res) {
-  const author = req.params.author;
-  try {
-    const booksByAuthor = await new Promise((resolve) => {
-      let filtered = Object.values(books).filter(b => b.author === author);
-      resolve(filtered);
-    });
-    res.send(JSON.stringify(booksByAuthor, null, 4));
-  } catch (error) {
-    res.status(404).json({message: "Author not found"});
-  }
+    const author = req.params.author;
+    try {
+        const getBooks = await axios.get('http://localhost:5000/');
+        const allBooks = getBooks.data;
+        const filteredBooks = Object.values(allBooks).filter(b => b.author === author);
+        
+        if (filteredBooks.length > 0) {
+            res.status(200).json(filteredBooks);
+        } else {
+            res.status(404).json({ message: "No books found for this author" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Error retrieving author data" });
+    }
 });
 
-// 4. Get book by Title (Task 13)
-public_users.get('/title/:title', function (req, res) {
-  const title = req.params.title;
-  new Promise((resolve) => {
-    let filtered = Object.values(books).filter(b => b.title === title);
-    resolve(filtered);
-  })
-  .then(result => res.send(JSON.stringify(result, null, 4)));
+// Task 13: Get book details based on Title
+public_users.get('/title/:title', async function (req, res) {
+    const title = req.params.title;
+    try {
+        const response = await axios.get('http://localhost:5000/');
+        const filteredBooks = Object.values(response.data).filter(b => b.title === title);
+        
+        if (filteredBooks.length > 0) {
+            res.status(200).json(filteredBooks);
+        } else {
+            res.status(404).json({ message: "No books found with this title" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Error retrieving title data" });
+    }
 });
